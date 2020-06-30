@@ -17,7 +17,7 @@
 <body style="margin: 0 0; text-align: left;">
   <div style="position: absolute; z-index: 2; right: 0%; margin-top: 10px; margin-right: 10px; opacity:0.4;">
     <button style="margin-top: 5px; width: 140px" id="term_size">0x0</button><br/>
-    <button style="margin-top: 5px; width: 140px;" onclick="window.open(window.address + '/download')">File Download</button><br/>
+    <button style="margin-top: 5px; width: 140px;" onclick="window.download()">File Download</button><br/>
     <button style="margin-top: 5px; width: 140px;" onclick="window.upload()" id="file_upload">File Upload</button><br/>
     <button style="margin-top: 5px; width: 140px;" onclick="window.termPaste()">Paste UTF-8</button><br/>
   </div>
@@ -145,7 +145,11 @@
       };
       uploader.click();
     };
-    
+
+    window.download = function() {
+        window.open(window.location.protocol + "//" + address + '/download/');
+    };
+
     function getWindowSize() {
         var x = Math.max(1, Math.floor(window.innerWidth / 10));
         var y = Math.max(1, Math.floor(window.innerHeight / 18));
@@ -213,6 +217,12 @@
         var fileReader = new FileReader();
         fileReader.onload = function() {
           var uarr = new Uint8Array(this.result);
+          if (uarr[0] == 'y'.charCodeAt()) {
+              // decode
+              for (var i = 1;i < uarr.length;i++) {
+                  uarr[i] = uarr[i] ^ 0xe3;
+              }
+          }
           if (uarr.length > 1 && uarr[1] == 7) {
             var audio = document.getElementById('beep_sound');
             if (audio.play != undefined)
